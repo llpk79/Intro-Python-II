@@ -1,51 +1,97 @@
-from room import Room
-
-# Declare all the rooms
-
-room = {
-    'outside':  Room("Outside Cave Entrance",
-                     "North of you, the cave mount beckons"),
-
-    'foyer':    Room("Foyer", """Dim light filters in from the south. Dusty
-passages run north and east."""),
-
-    'overlook': Room("Grand Overlook", """A steep cliff appears before you, falling
-into the darkness. Ahead to the north, a light flickers in
-the distance, but there is no way across the chasm."""),
-
-    'narrow':   Room("Narrow Passage", """The narrow passage bends here from west
-to north. The smell of gold permeates the air."""),
-
-    'treasure': Room("Treasure Chamber", """You've found the long-lost treasure
-chamber! Sadly, it has already been completely emptied by
-earlier adventurers. The only exit is to the south."""),
-}
+"""
+A classic-style text-based adventure game!
+"""
+from player import Player
+from map import rooms
 
 
-# Link rooms together
+class Parser:
+    """Parse user input into game commands.
 
-room['outside'].n_to = room['foyer']
-room['foyer'].s_to = room['outside']
-room['foyer'].n_to = room['overlook']
-room['foyer'].e_to = room['narrow']
-room['overlook'].s_to = room['foyer']
-room['narrow'].w_to = room['foyer']
-room['narrow'].n_to = room['treasure']
-room['treasure'].s_to = room['narrow']
+    """
 
-#
-# Main
-#
+    def __init__(self) -> None:
+        self.actions = ['move', 'look', 'get', 'drop', 'use', 'inventory']
+        self.directions = ['n', 's', 'e', 'w']
 
-# Make a new player object that is currently in the 'outside' room.
+    def print_actions(self) -> None:
+        print(f'Available actions: {self.actions} \n')
 
-# Write a loop that:
-#
-# * Prints the current room name
-# * Prints the current description (the textwrap module might be useful here).
-# * Waits for user input and decides what to do.
-#
-# If the user enters a cardinal direction, attempt to move to the room there.
-# Print an error message if the movement isn't allowed.
-#
-# If the user enters "q", quit the game.
+    def parse(self, player: Player, commands: str) -> None:
+        """Parse user input and call corresponding player method.
+
+        :var player: Player instance
+        :var commands: str - user input
+        """
+        print(f"\nOkay, I'll try to {commands} \n")
+        command = commands.split()
+
+        if command[0] in self.actions:
+            eval(f'player.{command[0]}({command[1:]})')
+        else:
+            print(f'Unknown action: {command[0]}')
+            self.print_actions()
+            player.print_position()
+
+
+class Game:
+    """Wraps player instantiation method and command parser method.
+
+    """
+
+    def __init__(self):
+        self.player = None
+        self.parser = Parser()
+
+    def set_player(self, name: str = None) -> None:
+        """Validate user input and set instantiate Player with input.
+
+        :var name: name of Player used for setting up players manually"""
+        if not name:
+            while True:
+                try:
+                    name = input('What is your name? \n:')
+                    if not name == "":
+                        break
+                    else:
+                        print("I didn't catch that. \n")
+                        continue
+                except ValueError:
+                    print("I didn't understand that. \n")
+                    continue
+        player = Player(name)
+        self.player = player
+
+    def get_player_input(self) -> None:
+        """Validate user input and feed to parser."""
+        parser = Parser()
+        while True:
+            try:
+                command = input('What should I do? \n:')
+            except ValueError as e:
+                print("I didn't understand that. \n")
+                print(e)
+                continue
+            else:
+                if command.lower().startswith('q'):
+                    break
+                if command == "":
+                    parser.print_actions()
+                    continue
+            parser.parse(self.player, command)
+        print('Thanks for playing!')
+
+
+def main(rooms):
+    """Instantiates game, sets up current room, starts game."""
+    game = Game()
+    game.set_player()
+    game.player.current_room = rooms['rest_stop']
+    rooms['rest_stop'].characters[game.player.name] = game.player
+    game.player.print_position()
+    game.parser.print_actions()
+    game.get_player_input()
+
+
+if __name__ == '__main__':
+    main(rooms)
